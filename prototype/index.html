@@ -1,0 +1,187 @@
+<title>Gita Scroll Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Sanskrit&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;600;700&display=swap">
+<style>
+/* Layout: a phone-sized, full-height feed of one verse per screen, snap scrolling, with a bottom action rail and a top mood bar. */
+:root{
+  --bg:#f6efe4; --surface:#fffaf2; --fg:#2b1d12; --muted:#7a6553; --accent:#c2561a; --accent-2:#1f4e5f; --line:#e6d8c4;
+  --f-sk:"Tiro Devanagari Sanskrit","Noto Serif Devanagari",serif;
+  --f-display:"Fraunces",Georgia,serif;
+  --f-body:"Manrope",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#17110c; --surface:#221a13; --fg:#f3e7d6; --muted:#b29c86; --accent:#f08a46; --accent-2:#7cc0d4; --line:#3a2d22; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#17110c; --surface:#221a13; --fg:#f3e7d6; --muted:#b29c86; --accent:#f08a46; --accent-2:#7cc0d4; --line:#3a2d22; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);margin:0;overflow:hidden}
+.app{height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative}
+header{display:flex;flex-direction:column;gap:10px;padding-block:12px 8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.2px}
+.brand span{color:var(--accent)}
+.streak{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-variant-numeric:tabular-nums}
+.moods{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.moods::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 12px;font:600 13px var(--f-body);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip:focus-visible,.act:focus-visible,.btn:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
+.feed{flex:1;overflow-y:auto;scroll-snap-type:y mandatory;overscroll-behavior:contain}
+.card{height:100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;justify-content:center;gap:18px;padding-block:24px 96px;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(72px,env(safe-area-inset-right,0px));box-sizing:border-box;position:relative}
+.ref{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.sk{font-family:var(--f-sk);font-size:19px;line-height:1.75;color:var(--muted)}
+.en{font-family:var(--f-display);font-weight:500;font-size:25px;line-height:1.35;text-wrap:balance}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+.rail{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:110px;display:flex;flex-direction:column;gap:14px;align-items:center}
+.act{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);display:grid;place-items:center;cursor:pointer;font:700 10px var(--f-body)}
+.act svg{width:22px;height:22px}
+.act[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+.hint{position:absolute;bottom:40px;left:0;right:0;text-align:center;font-size:12px;color:var(--muted)}
+.sheet{position:absolute;inset:auto 0 0 0;background:var(--surface);border-top:1px solid var(--line);border-radius:18px 18px 0 0;padding-block:20px calc(24px + env(safe-area-inset-bottom,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));box-shadow:0 -12px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:12px;max-height:75%;overflow:auto;z-index:5}
+.sheet h3{font-family:var(--f-display);margin:0;font-size:20px}
+.sheet p{margin:0;line-height:1.6}
+.lock{border:1px dashed var(--accent);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.lock b{color:var(--accent)}
+.btn{border:0;border-radius:12px;padding:12px 16px;font:700 15px var(--f-body);cursor:pointer;background:var(--accent);color:#fff}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.plan{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px;cursor:pointer;background:var(--bg)}
+.plan[aria-pressed="true"]{border-color:var(--accent);outline:1px solid var(--accent)}
+.plan small{color:var(--muted)}
+.plan strong{font-size:18px;font-variant-numeric:tabular-nums}
+.note{font-size:12px;color:var(--muted)}
+.toast{position:absolute;top:110px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:13px;font-weight:600;z-index:6}
+@media (prefers-reduced-motion:reduce){.feed{scroll-behavior:auto}}
+</style>
+
+<div class="app">
+  <header>
+    <div class="top">
+      <div class="brand">Gita<span>Scroll</span></div>
+      <div class="streak" id="streak">Day 1 streak · 0 verses today</div>
+    </div>
+    <div class="moods" id="moods" role="toolbar" aria-label="Choose how you feel"></div>
+  </header>
+  <main class="feed" id="feed" aria-label="Verse feed"></main>
+  <div class="toast" id="toast" hidden></div>
+  <section class="sheet" id="sheet" hidden aria-live="polite"></section>
+</div>
+
+<script>
+const VERSES = [
+ {ref:"2.47", moods:["anxious","work"], sk:"कर्मण्येवाधिकारस्ते मा फलेषु कदाचन ।\nमा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि ॥",
+  en:"You have a right to your work, but never to its results. Do not act for the reward, and do not give up action either.",
+  ex:"Krishna separates effort from outcome. You control how well you study, build or serve. You do not control the result. Putting your full attention on the work itself lowers anxiety and often improves the result too."},
+ {ref:"2.20", moods:["grief"], sk:"न जायते म्रियते वा कदाचिन् नायं भूत्वा भविता वा न भूयः ।\nअजो नित्यः शाश्वतोऽयं पुराणो न हन्यते हन्यमाने शरीरे ॥",
+  en:"The self is never born and never dies. Unborn, eternal and ancient, it is not destroyed when the body is destroyed.",
+  ex:"Arjuna is grieving before a battle against his own family. Krishna's first teaching is about the self (atman), which he says outlives the body. Many readers turn to this verse after losing someone."},
+ {ref:"2.14", moods:["anxious","grief"], sk:"मात्रास्पर्शास्तु कौन्तेय शीतोष्णसुखदुःखदाः ।\nआगमापायिनोऽनित्यास्तांस्तितिक्षस्व भारत ॥",
+  en:"Heat and cold, pleasure and pain come and go. They are not permanent. Learn to bear them patiently, Arjuna.",
+  ex:"Feelings arrive through the senses and pass like seasons. The practice here is titiksha, steady endurance: noticing a hard moment without letting it decide who you are."},
+ {ref:"2.22", moods:["grief"], sk:"वासांसि जीर्णानि यथा विहाय नवानि गृह्णाति नरोऽपराणि ।\nतथा शरीराणि विहाय जीर्णान्यन्यानि संयाति नवानि देही ॥",
+  en:"As a person throws off worn-out clothes and puts on new ones, the soul leaves worn-out bodies and enters new ones.",
+  ex:"One of the Gita's best-known images. Death is compared to changing clothes, a change of form rather than an ending."},
+ {ref:"4.7", moods:["lost"], sk:"यदा यदा हि धर्मस्य ग्लानिर्भवति भारत ।\nअभ्युत्थानमधर्मस्य तदात्मानं सृजाम्यहम् ॥",
+  en:"Whenever righteousness declines and unrighteousness rises, Arjuna, I manifest myself.",
+  ex:"Krishna promises that the divine steps in whenever dharma (right order) collapses. For readers it is a verse of hope in dark times."},
+ {ref:"6.5", moods:["lost","work"], sk:"उद्धरेदात्मनात्मानं नात्मानमवसादयेत् ।\nआत्मैव ह्यात्मनो बन्धुरात्मैव रिपुरात्मनः ॥",
+  en:"Lift yourself up by your own effort and do not let yourself sink. The mind can be your best friend or your worst enemy.",
+  ex:"Responsibility for growth sits with you. The same mind that drags you down can be trained to lift you up. This is the Gita's verse on self-discipline."},
+ {ref:"2.48", moods:["work","anxious"], sk:"योगस्थः कुरु कर्माणि सङ्गं त्यक्त्वा धनञ्जय ।\nसिद्ध्यसिद्ध्योः समो भूत्वा समत्वं योग उच्यते ॥",
+  en:"Steady in yoga, do your work without attachment, staying even-minded in success and failure. This evenness is called yoga.",
+  ex:"Here yoga means samatva, balance. Wins and losses both pass. Staying balanced through them is the practice."},
+ {ref:"6.35", moods:["angry","anxious"], sk:"असंशयं महाबाहो मनो दुर्निग्रहं चलम् ।\nअभ्यासेन तु कौन्तेय वैराग्येण च गृह्यते ॥",
+  en:"The mind is restless and hard to control, no doubt. But it can be steadied through practice and detachment.",
+  ex:"Arjuna complains that the mind is like the wind. Krishna agrees, then gives two tools: abhyasa (steady daily practice) and vairagya (letting go of cravings)."},
+ {ref:"3.35", moods:["lost","work"], sk:"श्रेयान्स्वधर्मो विगुणः परधर्मात्स्वनुष्ठितात् ।\nस्वधर्मे निधनं श्रेयः परधर्मो भयावहः ॥",
+  en:"Better to follow your own path imperfectly than another's path perfectly.",
+  ex:"Svadharma is your own duty and nature. Comparing yourself to others and copying their path leads to fear. Your own path, done imperfectly, is still yours."},
+ {ref:"18.66", moods:["anxious","grief","lost"], sk:"सर्वधर्मान्परित्यज्य मामेकं शरणं व्रज ।\nअहं त्वा सर्वपापेभ्यो मोक्षयिष्यामि मा शुचः ॥",
+  en:"Set aside every other duty and take refuge in me alone. I will free you from all wrongs. Do not grieve.",
+  ex:"Often called the Gita's final teaching. After 700 verses of philosophy, Krishna ends with surrender and reassurance: 'ma shuchah', do not worry."},
+];
+const MOODS=[["all","For you"],["anxious","Anxious"],["lost","Feeling lost"],["grief","Grieving"],["angry","Angry"],["work","Work & study"]];
+const ICON={
+ heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6C19 16.5 12 21 12 21z"/></svg>',
+ save:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4z"/></svg>',
+ bulb:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></svg>',
+ chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H9l-5 4z"/></svg>'
+};
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let liked=new Set(store.get("liked",[])), saved=new Set(store.get("saved",[])), seen=new Set(), mood="all";
+const $=id=>document.getElementById(id);
+
+function renderMoods(){$("moods").innerHTML=MOODS.map(([k,l])=>`<button class="chip" id="mood-${k}" aria-pressed="${k===mood}" data-m="${k}">${l}</button>`).join("")}
+function renderFeed(){
+  const list=VERSES.filter(v=>mood==="all"||v.moods.includes(mood));
+  $("feed").innerHTML=list.map((v,i)=>`
+   <article class="card" data-ref="${v.ref}">
+     <div class="ref">Bhagavad Gita ${v.ref}</div>
+     <div class="sk">${v.sk.replace("\n","<br>")}</div>
+     <div class="en">${v.en}</div>
+     <div class="tags">${v.moods.map(m=>`<span class="tag">${MOODS.find(x=>x[0]===m)[1]}</span>`).join("")}</div>
+     <div class="rail">
+       <button class="act" data-a="like" aria-label="Like" aria-pressed="${liked.has(v.ref)}">${ICON.heart}</button>
+       <button class="act" data-a="save" aria-label="Save" aria-pressed="${saved.has(v.ref)}">${ICON.save}</button>
+       <button class="act" data-a="explain" aria-label="Explain this verse">${ICON.bulb}</button>
+       <button class="act" data-a="ask" aria-label="Ask a question">${ICON.chat}</button>
+     </div>
+     ${i===0?'<div class="hint">Swipe up for the next verse</div>':''}
+   </article>`).join("");
+  $("feed").scrollTop=0; observe();
+}
+let io;
+function observe(){
+  io&&io.disconnect();
+  io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){seen.add(e.target.dataset.ref);updateStreak();if(seen.size===5)paywall("After 5 verses, this is where the app asks for a free trial. Real apps put this screen right after onboarding.")}}),{threshold:.6});
+  document.querySelectorAll(".card").forEach(c=>io.observe(c));
+}
+function updateStreak(){$("streak").textContent=`Day 1 streak · ${seen.size} verse${seen.size===1?"":"s"} today`}
+function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,1400)}
+function closeSheet(){$("sheet").hidden=true}
+function explain(v){
+  $("sheet").innerHTML=`<h3>Gita ${v.ref}, explained</h3><p>${v.ex}</p>
+   <div class="lock"><b>Premium</b><span>Word-by-word Sanskrit meaning, audio chanting and commentary from three traditions.</span></div>
+   <button class="btn ghost" id="close-sheet">Close</button>`;
+  $("sheet").hidden=false;
+}
+function ask(v){
+  $("sheet").innerHTML=`<h3>Ask about Gita ${v.ref}</h3>
+   <p class="note">Example of the AI guide (a paid feature):</p>
+   <p><b>You:</b> I'm scared of failing my exam. What does this verse say to me?</p>
+   <p><b>Guide:</b> Krishna asks you to give your full effort and let go of the result. Study as an offering, today, one chapter at a time. The outcome isn't yours to carry.</p>
+   <button class="btn" id="go-paywall">Unlock the AI guide</button><button class="btn ghost" id="close-sheet">Close</button>`;
+  $("sheet").hidden=false;
+}
+function paywall(msg){
+  $("sheet").innerHTML=`<h3>Go deeper with Gita Scroll Plus</h3>
+   ${msg?`<p class="note">${msg}</p>`:""}
+   <p>Unlimited AI guide · audio chanting · all 18 chapters with commentary · reading plans · home-screen widget</p>
+   <div class="plans">
+     <button class="plan" id="plan-year" aria-pressed="true"><small>Yearly · 7-day free trial</small><strong>₹999 / $29.99</strong><small>Best value</small></button>
+     <button class="plan" id="plan-month" aria-pressed="false"><small>Monthly</small><strong>₹149 / $4.99</strong><small>Cancel anytime</small></button>
+   </div>
+   <button class="btn" id="start-trial">Start free trial</button>
+   <button class="btn ghost" id="close-sheet">Not now</button>
+   <p class="note">Prototype only. No payment happens here.</p>`;
+  $("sheet").hidden=false;
+}
+document.addEventListener("click",e=>{
+  const chip=e.target.closest(".chip");
+  if(chip){mood=chip.dataset.m;renderMoods();renderFeed();return}
+  const act=e.target.closest(".act");
+  if(act){const ref=act.closest(".card").dataset.ref, v=VERSES.find(x=>x.ref===ref), a=act.dataset.a;
+    if(a==="like"){liked.has(ref)?liked.delete(ref):liked.add(ref);store.set("liked",[...liked]);act.setAttribute("aria-pressed",liked.has(ref));toast(liked.has(ref)?"Liked":"Like removed")}
+    if(a==="save"){saved.has(ref)?saved.delete(ref):saved.add(ref);store.set("saved",[...saved]);act.setAttribute("aria-pressed",saved.has(ref));toast(saved.has(ref)?"Saved to your collection":"Removed from collection")}
+    if(a==="explain")explain(v);
+    if(a==="ask")ask(v);
+    return}
+  if(e.target.closest("#close-sheet"))return closeSheet();
+  if(e.target.closest("#go-paywall"))return paywall();
+  const plan=e.target.closest(".plan");
+  if(plan){document.querySelectorAll(".plan").forEach(p=>p.setAttribute("aria-pressed",p===plan));return}
+  if(e.target.closest("#start-trial")){closeSheet();toast("In the real app, the App Store payment sheet opens here")}
+});
+renderMoods();renderFeed();
+</script>
